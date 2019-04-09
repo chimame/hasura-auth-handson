@@ -1,0 +1,32 @@
+version: '3'
+services:
+  db:
+    image: postgres:11.1-alpine
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: pass
+      TZ: "Asia/Tokyo"
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+      - postgresql-data:/var/lib/postgresql/data
+  hasura:
+    build: .
+    ports:
+      - "8080:8080"
+#      - "9695:9695"
+#      - "9693:9693"
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://root:pass@db:5432/application_development
+      HASURA_GRAPHQL_DATABASE_URL: postgres://root:pass@db:5432/application_development
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_MIGRATIONS_DIR: /hasura/migrations
+#      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: anonymous
+#      HASURA_GRAPHQL_JWT_SECRET: '{"type":"RS512", "jwk_url": "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"}'
+#      HASURA_GRAPHQL_ADMIN_SECRET: hogehoge
+    depends_on:
+      - db
+    volumes:
+      - "./db:/hasura"
+volumes:
+  postgresql-data:
