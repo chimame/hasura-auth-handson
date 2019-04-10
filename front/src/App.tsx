@@ -1,28 +1,37 @@
-import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from 'react'
+import firebase from 'firebase'
+import 'firebase/auth'
+import 'firebase/database'
+import './App.css'
 
-class App extends Component {
-  render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.tsx</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
-      </div>
-    );
-  }
+interface authInterface {
+  status: 'loading' | 'in' | 'out'
+  user?: firebase.User
 }
 
-export default App;
+export default () => {
+  const [auth, setAuthState] = useState<authInterface>({status: 'loading'})
+
+  useEffect(() => {
+    setAuthState({status: 'out'})
+  }, [])
+
+  let content
+  switch (auth.status) {
+    case 'loading':
+      content = <>loading...</>
+      break;
+    case 'in':
+      content = <div>{(auth.user || {displayName: null}).displayName}</div>
+      break;
+    default:
+      content = <div><button>SignIn</button></div>
+      break;
+  }
+
+  return (
+    <div className="App">
+      {content}
+    </div>
+  )
+}
