@@ -4,6 +4,7 @@ import 'firebase/auth'
 import 'firebase/database'
 import './App.css'
 import config from './config'
+import Communities from './Communities'
 
 firebase.initializeApp(config)
 const provider = new firebase.auth.GoogleAuthProvider()
@@ -52,8 +53,11 @@ export default () => {
     case 'in':
       content = (
         <div>
-          {(auth.user || {displayName: null}).displayName}
-          <button onClick={handleSignOut}>SignOut</button>
+          <div>
+            {(auth.user || {displayName: null}).displayName}
+            <button onClick={handleSignOut}>SignOut</button>
+          </div>
+          <Communities />
         </div>
       )
       break;
