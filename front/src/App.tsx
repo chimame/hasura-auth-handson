@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import firebase from 'firebase'
+import firebase from 'firebase/app'
 import 'firebase/auth'
 import 'firebase/database'
 import './App.css'
@@ -12,15 +12,32 @@ const provider = new firebase.auth.GoogleAuthProvider()
 interface authInterface {
   status: 'loading' | 'in' | 'out'
   user?: firebase.User
+  token?: string
 }
 
 export default () => {
   const [auth, setAuthState] = useState<authInterface>({status: 'loading'})
 
   useEffect(() => {
-    firebase.auth().onAuthStateChanged(user => {
+    firebase.auth().onAuthStateChanged(async user => {
       if (user) {
-        setAuthState({status: 'in', user})
+        const token = await user.getIdToken()
+        const idTokenResult = await user.getIdTokenResult()
+        const hasuraClaim =
+          idTokenResult.claims["https://hasura.io/jwt/claims"]
+
+        if (hasuraClaim) {
+          setAuthState({ status: "in", user, token })
+        } else {
+          const metadataRef = firebase
+            .database()
+            .ref("metadata/" + user.uid + "/refreshTime")
+
+          metadataRef.on("value", async () => {
+            const token = await user.getIdToken(true)
+            setAuthState({ status: "in", user, token })
+          })
+        }
       } else {
         setAuthState({status: 'out'})
       }
@@ -49,7 +66,7 @@ export default () => {
   switch (auth.status) {
     case 'loading':
       content = <>loading...</>
-      break;
+      break
     case 'in':
       content = (
         <div>
@@ -57,13 +74,13 @@ export default () => {
             {(auth.user || {displayName: null}).displayName}
             <button onClick={handleSignOut}>SignOut</button>
           </div>
-          <Communities />
+          <Communities token={auth.token || ""} />
         </div>
       )
-      break;
+      break
     default:
       content = <div><button onClick={handleSignIn}>SignIn</button></div>
-      break;
+      break
   }
 
   return (

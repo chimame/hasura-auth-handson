@@ -10,30 +10,6 @@ import gql from 'graphql-tag'
 const wsurl = 'ws://localhost:8080/v1alpha1/graphql'
 const httpurl = 'http://localhost:8080/v1alpha1/graphql'
 
-const wsLink = new WebSocketLink({
-  uri: wsurl,
-  options: {
-    reconnect: true
-  }
-})
-const httpLink = new HttpLink({
-  uri: httpurl,
-})
-
-const link = split(
-  ({ query }) => {
-    const { kind, operation } = getMainDefinition(query)
-    return kind === 'OperationDefinition' && operation === 'subscription'
-  },
-  wsLink,
-  httpLink,
-)
-
-const client = new ApolloClient({
-  link,
-  cache: new InMemoryCache()
-})
-
 const COMMUNITIE_SUB = gql`
   subscription COMMUNITIE {
     communities {
@@ -41,7 +17,7 @@ const COMMUNITIE_SUB = gql`
       description
     }
   }
-`;
+`
 
 interface CommunityData {
   name: string
@@ -54,7 +30,37 @@ interface CommunitiesSubscriptionData {
 
 class CommunitiesSubscription extends Subscription<CommunitiesSubscriptionData, {}> {}
 
-export default () => {
+export default ({token}: {token: string}) => {
+  const headers = { Authorization: `Bearer ${token}` }
+
+  const wsLink = new WebSocketLink({
+    uri: wsurl,
+    options: {
+      reconnect: true,
+      connectionParams: {
+        headers
+      }
+    }
+  })
+  const httpLink = new HttpLink({
+    uri: httpurl,
+    headers
+  })
+  
+  const link = split(
+    ({ query }) => {
+      const { kind, operation } = getMainDefinition(query)
+      return kind === 'OperationDefinition' && operation === 'subscription'
+    },
+    wsLink,
+    httpLink,
+  )
+  
+  const client = new ApolloClient({
+    link,
+    cache: new InMemoryCache()
+  })
+
   return (
     <ApolloProvider client={client}>
       <CommunitiesSubscription subscription={COMMUNITIE_SUB}>
