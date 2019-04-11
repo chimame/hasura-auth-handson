@@ -6,7 +6,7 @@ import './App.css'
 import config from './config'
 
 firebase.initializeApp(config)
-const provider = new firebase.auth.GithubAuthProvider()
+const provider = new firebase.auth.GoogleAuthProvider()
 
 interface authInterface {
   status: 'loading' | 'in' | 'out'
@@ -17,7 +17,13 @@ export default () => {
   const [auth, setAuthState] = useState<authInterface>({status: 'loading'})
 
   useEffect(() => {
-    setAuthState({status: 'out'})
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        setAuthState({status: 'in', user})
+      } else {
+        setAuthState({status: 'out'})
+      }
+    })
   }, [])
 
   const handleSignIn = async () => {
