@@ -1,5 +1,5 @@
-import React from 'react'
-import { ApolloProvider, Subscription } from "react-apollo"
+import React, { useState, useCallback } from 'react'
+import { ApolloProvider, Subscription, Mutation } from "react-apollo"
 import ApolloClient from "apollo-client"
 import { WebSocketLink } from 'apollo-link-ws'
 import { HttpLink } from 'apollo-link-http'
@@ -19,6 +19,17 @@ const COMMUNITIE_SUB = gql`
   }
 `
 
+const COMMUNITY_MUTATION = gql`
+  mutation COMMUNITY($name: String!, $description: String) {
+    insert_communities(objects: [{name: $name, description: $description}]) {
+      returning {
+        name
+        description
+      }
+    }  
+  }
+`
+
 interface CommunityData {
   name: string
   description: string
@@ -29,6 +40,7 @@ interface CommunitiesSubscriptionData {
 }
 
 class CommunitiesSubscription extends Subscription<CommunitiesSubscriptionData, {}> {}
+class CommunityMutation extends Mutation<CommunityData, CommunityData> {}
 
 export default ({token}: {token: string}) => {
   const headers = { Authorization: `Bearer ${token}` }
@@ -61,8 +73,32 @@ export default ({token}: {token: string}) => {
     cache: new InMemoryCache()
   })
 
+  const [input, setInput] = useState<CommunityData>({name: "", description: ""})
+  const handleInputChange = (type: 'name' | 'description') => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput({...input, [type]: e.target.value})
+  }
+
   return (
     <ApolloProvider client={client}>
+      <CommunityMutation mutation={COMMUNITY_MUTATION} variables={input}>
+      {
+        community => {
+          const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+            e.preventDefault()
+            community()
+          }
+          return (
+            <form onSubmit={handleSubmit}>
+              <div>name</div>
+              <div><input type="text" value={input.name} onChange={handleInputChange("name")} /></div>
+              <div>description</div>
+              <div><input type="text" value={input.description} onChange={handleInputChange("description")} /></div>
+              <button type="submit">登録</button>
+            </form>
+          )
+        }
+      }
+      </CommunityMutation>
       <CommunitiesSubscription subscription={COMMUNITIE_SUB}>
         {({data, loading, error}) => {
           if (loading) return 'loading...'
